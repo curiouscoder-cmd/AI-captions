@@ -55,14 +55,16 @@ export const CaptionRenderer: React.FC<CaptionRendererProps> = ({
           transform: `translateX(-50%) scale(${scale})`,
           backgroundColor: 'rgba(0, 0, 0, 0.8)',
           color: 'white',
-          padding: '16px 32px',
+          padding: '12px 24px',
           borderRadius: '8px',
-          fontSize: '48px',
+          fontSize: '36px',
           fontWeight: 'bold',
           textAlign: 'center' as const,
-          maxWidth: '95%',
+          maxWidth: '90%',
           fontFamily: '"Noto Sans", "Noto Sans Devanagari", sans-serif',
-          lineHeight: 1.2,
+          lineHeight: 1.3,
+          wordWrap: 'break-word' as const,
+          overflowWrap: 'break-word' as const,
         };
       
       case 'top':
@@ -74,12 +76,14 @@ export const CaptionRenderer: React.FC<CaptionRendererProps> = ({
           transform: `scale(${scale})`,
           backgroundColor: 'rgba(0, 0, 0, 0.9)',
           color: 'white',
-          padding: '20px',
-          fontSize: '42px',
+          padding: '16px',
+          fontSize: '32px',
           fontWeight: 'bold',
           textAlign: 'center' as const,
           fontFamily: '"Noto Sans", "Noto Sans Devanagari", sans-serif',
           borderBottom: '4px solid #ff6b6b',
+          wordWrap: 'break-word' as const,
+          overflowWrap: 'break-word' as const,
         };
       
       case 'karaoke':
@@ -88,12 +92,14 @@ export const CaptionRenderer: React.FC<CaptionRendererProps> = ({
           bottom: '15%',
           left: '50%',
           transform: `translateX(-50%) scale(${scale})`,
-          fontSize: '52px',
+          fontSize: '38px',
           fontWeight: 'bold',
           textAlign: 'center' as const,
           fontFamily: '"Noto Sans", "Noto Sans Devanagari", sans-serif',
-          textShadow: '3px 3px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000',
-          maxWidth: '95%',
+          textShadow: '2px 2px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000',
+          maxWidth: '90%',
+          wordWrap: 'break-word' as const,
+          overflowWrap: 'break-word' as const,
         };
       
       default:
@@ -122,7 +128,7 @@ export const CaptionRenderer: React.FC<CaptionRendererProps> = ({
             style={{
               color: index < highlightedChars ? '#ffdd44' : 'rgba(255, 255, 255, 0.8)',
               textShadow: index < highlightedChars 
-                ? '3px 3px 0px #ff6b6b, -1px -1px 0px #ff6b6b, 1px -1px 0px #ff6b6b, -1px 1px 0px #ff6b6b'
+                ? '2px 2px 0px #ff6b6b, -1px -1px 0px #ff6b6b, 1px -1px 0px #ff6b6b, -1px 1px 0px #ff6b6b'
                 : 'inherit',
               transition: 'color 0.1s ease-out',
             }}
