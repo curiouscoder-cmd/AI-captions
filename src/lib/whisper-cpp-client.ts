@@ -33,15 +33,8 @@ class WhisperCppClient {
       // Dynamic import of whisper-wasm
       const { default: createWhisperModule } = await import('whisper-wasm');
       
-      onProgress?.('Downloading Whisper model (tiny.en ~39MB)...');
-      // Use smaller model for faster loading
-      this.whisperModule = await createWhisperModule({
-        model: 'tiny.en', // Much smaller model (~39MB vs ~1.5GB for medium)
-        // Add progress callback if supported
-        onProgress: (progress: number) => {
-          onProgress?.(`Downloading model: ${Math.round(progress * 100)}%`);
-        }
-      });
+      onProgress?.('Initializing Whisper.cpp...');
+      this.whisperModule = await createWhisperModule();
       
       onProgress?.('Whisper.cpp loaded successfully!');
       return this.whisperModule;
