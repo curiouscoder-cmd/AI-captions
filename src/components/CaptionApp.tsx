@@ -179,11 +179,11 @@ export const CaptionApp = () => {
 
     setIsExporting(true);
     try {
-      // Use client-side video export
+      // Use client-side video export with bottom centered style
       const exportedBlob = await exportVideoWithCaptions({
         videoFile,
         captions,
-        style: captionStyle
+        style: 'bottom' // Always use bottom centered style for export
       });
 
       // Download the rendered video
@@ -202,7 +202,7 @@ export const CaptionApp = () => {
       const exportCommand = `npx remotion render CaptionedVideo out/video.mp4 --props='${JSON.stringify({
         videoSrc: videoUrl,
         captions,
-        style: captionStyle,
+        style: 'bottom', // Always use bottom centered style for export
       })}'`;
 
       const instructions = `# Video Export Instructions
@@ -417,9 +417,11 @@ ${JSON.stringify(captions, null, 2)}
       <div className="text-center">
         <div className="mb-4 p-3 bg-blue-500/20 rounded-lg border border-blue-400/30">
           <p className="text-blue-300 text-sm">
-            📹 <strong>Browser Export:</strong> Creates WebM video with captions burned-in
+            📹 <strong>Browser Export:</strong> Creates WebM video with captions burned-in (bottom centered style)
             <br />
             📄 <strong>Fallback:</strong> Downloads Remotion CLI instructions for MP4 export
+            <br />
+            ℹ️ <strong>Note:</strong> Exported videos always use bottom centered captions for best compatibility
           </p>
         </div>
         
