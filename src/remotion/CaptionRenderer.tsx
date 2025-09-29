@@ -60,7 +60,7 @@ export const CaptionRenderer: React.FC<CaptionRendererProps> = ({
           fontSize: '48px',
           fontWeight: 'bold',
           textAlign: 'center' as const,
-          maxWidth: '80%',
+          maxWidth: '95%',
           fontFamily: '"Noto Sans", "Noto Sans Devanagari", sans-serif',
           lineHeight: 1.2,
         };
@@ -93,7 +93,7 @@ export const CaptionRenderer: React.FC<CaptionRendererProps> = ({
           textAlign: 'center' as const,
           fontFamily: '"Noto Sans", "Noto Sans Devanagari", sans-serif',
           textShadow: '3px 3px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000',
-          maxWidth: '80%',
+          maxWidth: '95%',
         };
       
       default:
