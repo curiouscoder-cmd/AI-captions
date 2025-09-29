@@ -15,6 +15,7 @@ export const CaptionApp = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [modelLoading, setModelLoading] = useState(false);
   const [transcriptionMethod, setTranscriptionMethod] = useState<'whisper-cpp' | 'transformers' | 'none'>('none');
+  const [canCancel, setCanCancel] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,6 +30,15 @@ export const CaptionApp = () => {
 
   const [progress, setProgress] = useState<string>('');
 
+  const cancelTranscription = () => {
+    setIsGenerating(false);
+    setModelLoading(false);
+    setTranscriptionMethod('none');
+    setCanCancel(false);
+    setProgress('Transcription cancelled by user');
+    setTimeout(() => setProgress(''), 3000);
+  };
+
   const generateCaptionsWithWhisperCpp = async () => {
     if (!videoFile || isGenerating) {
       if (!videoFile) alert('Please upload a video first');
@@ -38,6 +48,7 @@ export const CaptionApp = () => {
     setTranscriptionMethod('whisper-cpp');
     setIsGenerating(true);
     setModelLoading(true);
+    setCanCancel(true);
     setProgress('Using Transformers.js as Whisper.cpp backend...');
     
     try {
@@ -81,6 +92,7 @@ export const CaptionApp = () => {
       setIsGenerating(false);
       setModelLoading(false);
       setTranscriptionMethod('none');
+      setCanCancel(false);
     }
   };
 
@@ -93,6 +105,7 @@ export const CaptionApp = () => {
     setTranscriptionMethod('transformers');
     setIsGenerating(true);
     setModelLoading(true);
+    setCanCancel(true);
     setProgress('Preparing video file...');
     
     try {
@@ -134,6 +147,7 @@ export const CaptionApp = () => {
       setIsGenerating(false);
       setModelLoading(false);
       setTranscriptionMethod('none');
+      setCanCancel(false);
     }
   };
 
@@ -249,9 +263,19 @@ ${JSON.stringify(captions, null, 2)}
           <strong>⚡ Demo:</strong> Instant Hinglish captions for testing UI
         </p>
         {progress && (
-          <p className="text-yellow-300 text-sm mt-2 animate-pulse">
-            {progress}
-          </p>
+          <div className="mt-2">
+            <p className="text-yellow-300 text-sm animate-pulse">
+              {progress}
+            </p>
+            {canCancel && (
+              <button
+                onClick={cancelTranscription}
+                className="mt-2 bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1 rounded transition-colors"
+              >
+                Cancel Transcription
+              </button>
+            )}
+          </div>
         )}
       </div>
 

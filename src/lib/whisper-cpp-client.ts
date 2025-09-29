@@ -50,65 +50,89 @@ class WhisperCppClient {
     audioData: Float32Array | ArrayBuffer,
     onProgress?: (progress: string) => void
   ): Promise<Caption[]> {
+    // Add timeout to prevent indefinite hanging
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Transcription timeout after 2 minutes. Try a shorter video or use Transformers.js instead.'));
+      }, 120000); // 2 minute timeout
+    });
+
     try {
-      const whisper = await this.loadWhisperCpp(onProgress);
-      
-      onProgress?.('Processing audio with Whisper.cpp...');
-      
-      // Convert audio data to the format expected by whisper.cpp
-      let audioFloat32: Float32Array;
-      if (audioData instanceof ArrayBuffer) {
-        audioFloat32 = new Float32Array(audioData);
-      } else {
-        audioFloat32 = audioData;
-      }
-      
-      // Transcribe with whisper.cpp - first try auto-detection
-      let result = await whisper.transcribe(audioFloat32, {
-        language: 'auto',
+      return await Promise.race([
+        this.performTranscription(audioData, onProgress),
+        timeoutPromise
+      ]);
+    } catch (error) {
+      console.error('Whisper.cpp transcription failed:', error);
+      throw error;
+    }
+  }
+
+  private async performTranscription(
+    audioData: Float32Array | ArrayBuffer,
+    onProgress?: (progress: string) => void
+  ): Promise<Caption[]> {
+    const whisper = await this.loadWhisperCpp(onProgress);
+    
+    onProgress?.('Processing audio with Whisper.cpp...');
+    
+    // Convert audio data to the format expected by whisper.cpp
+    let audioFloat32: Float32Array;
+    if (audioData instanceof ArrayBuffer) {
+      audioFloat32 = new Float32Array(audioData);
+    } else {
+      audioFloat32 = audioData;
+    }
+    
+    // Limit audio length to prevent hanging (max 60 seconds)
+    const maxSamples = 16000 * 60; // 60 seconds at 16kHz
+    if (audioFloat32.length > maxSamples) {
+      onProgress?.('Audio too long, processing first 60 seconds...');
+      audioFloat32 = audioFloat32.slice(0, maxSamples);
+    }
+    
+    // Transcribe with whisper.cpp - first try auto-detection
+    let result = await whisper.transcribe(audioFloat32, {
+      language: 'auto',
+      translate: false,
+      timestamps: true,
+      max_len: 0,
+      split_on_word: true
+    });
+
+    // If no text detected, try with Hindi language specified
+    if (!result.text && (!result.segments || result.segments.length === 0)) {
+      onProgress?.('Retrying with Hindi language detection...');
+      result = await whisper.transcribe(audioFloat32, {
+        language: 'hi', // Hindi language code
         translate: false,
         timestamps: true,
         max_len: 0,
         split_on_word: true
       });
-
-      // If no text detected, try with Hindi language specified
-      if (!result.text && (!result.segments || result.segments.length === 0)) {
-        onProgress?.('Retrying with Hindi language detection...');
-        result = await whisper.transcribe(audioFloat32, {
-          language: 'hi', // Hindi language code
-          translate: false,
-          timestamps: true,
-          max_len: 0,
-          split_on_word: true
-        });
-      }
-      
-      // Convert whisper.cpp result to our caption format
-      const captions: Caption[] = [];
-      
-      if (result.segments) {
-        for (const segment of result.segments) {
-          captions.push({
-            start: segment.start || 0,
-            end: segment.end || segment.start + 2,
-            text: segment.text?.trim() || ''
-          });
-        }
-      } else if (result.text) {
-        // Fallback: single caption
-        captions.push({
-          start: 0,
-          end: 5,
-          text: result.text.trim()
-        });
-      }
-      
-      return captions;
-    } catch (error) {
-      console.error('Whisper.cpp transcription error:', error);
-      throw error;
     }
+    
+    // Convert whisper.cpp result to our caption format
+    const captions: Caption[] = [];
+    
+    if (result.segments) {
+      for (const segment of result.segments) {
+        captions.push({
+          start: segment.start || 0,
+          end: segment.end || segment.start + 2,
+          text: segment.text?.trim() || ''
+        });
+      }
+    } else if (result.text) {
+      // Fallback: single caption
+      captions.push({
+        start: 0,
+        end: 5,
+        text: result.text.trim()
+      });
+    }
+    
+    return captions;
   }
 
   // Extract audio from video file for whisper.cpp
