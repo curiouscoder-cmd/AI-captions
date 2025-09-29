@@ -37,7 +37,7 @@ class WhisperTranscriber {
       
       this.pipeline = await pipeline(
         'automatic-speech-recognition',
-        'Xenova/whisper-tiny.en',
+        'Xenova/whisper-small', // Multilingual model that supports Hindi
         {
           progress_callback: (progress: any) => {
             if (progress.status === 'progress' && progress.total) {
@@ -66,11 +66,25 @@ class WhisperTranscriber {
     onProgress?.('Transcribing audio...');
     
     try {
-      const output = await model(input, {
+      // First try auto-detection (no language specified)
+      let output = await model(input, {
         return_timestamps: true,
         chunk_length_s: 30,
         stride_length_s: 5,
+        task: 'transcribe',
       });
+
+      // If no text detected, try with Hindi language specified
+      if (!output.text && (!output.chunks || output.chunks.length === 0)) {
+        onProgress?.('Retrying with Hindi language detection...');
+        output = await model(input, {
+          return_timestamps: true,
+          chunk_length_s: 30,
+          stride_length_s: 5,
+          language: 'hindi',
+          task: 'transcribe',
+        });
+      }
 
       // Format output into captions
       const captions = [];

@@ -63,14 +63,26 @@ class WhisperCppClient {
         audioFloat32 = audioData;
       }
       
-      // Transcribe with whisper.cpp
-      const result = await whisper.transcribe(audioFloat32, {
+      // Transcribe with whisper.cpp - first try auto-detection
+      let result = await whisper.transcribe(audioFloat32, {
         language: 'auto',
         translate: false,
         timestamps: true,
         max_len: 0,
         split_on_word: true
       });
+
+      // If no text detected, try with Hindi language specified
+      if (!result.text && (!result.segments || result.segments.length === 0)) {
+        onProgress?.('Retrying with Hindi language detection...');
+        result = await whisper.transcribe(audioFloat32, {
+          language: 'hi', // Hindi language code
+          translate: false,
+          timestamps: true,
+          max_len: 0,
+          split_on_word: true
+        });
+      }
       
       // Convert whisper.cpp result to our caption format
       const captions: Caption[] = [];

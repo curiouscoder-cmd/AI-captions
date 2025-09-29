@@ -93,6 +93,7 @@ export const CaptionRenderer: React.FC<CaptionRendererProps> = ({
           textAlign: 'center' as const,
           fontFamily: '"Noto Sans", "Noto Sans Devanagari", sans-serif',
           textShadow: '3px 3px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000',
+          maxWidth: '80%',
         };
       
       default:
@@ -103,44 +104,32 @@ export const CaptionRenderer: React.FC<CaptionRendererProps> = ({
   // Special rendering for karaoke effect
   if (style === 'karaoke') {
     const baseStyle = getStyleConfig();
+    
+    // Calculate how many characters should be highlighted
+    const totalChars = text.length;
+    const highlightedChars = Math.floor(karaokeProg * totalChars);
+    
     return (
-      <div style={{...baseStyle, opacity: progress}}>
-        {/* Background text (unfilled) */}
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          color: 'rgba(255, 255, 255, 0.6)',
-          zIndex: 1,
-          fontSize: 'inherit',
-          fontWeight: 'inherit',
-          fontFamily: 'inherit',
-          textAlign: 'inherit',
-          textShadow: 'inherit',
-        }}>
-          {text}
-        </div>
-        
-        {/* Filled text (progresses with karaoke) */}
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: `${karaokeProg * 100}%`,
-          height: '100%',
-          overflow: 'hidden',
-          color: '#ffdd44',
-          zIndex: 2,
-          fontSize: 'inherit',
-          fontWeight: 'inherit',
-          fontFamily: 'inherit',
-          textAlign: 'inherit',
-          textShadow: '3px 3px 0px #ff6b6b, -1px -1px 0px #ff6b6b, 1px -1px 0px #ff6b6b, -1px 1px 0px #ff6b6b',
-        }}>
-          {text}
-        </div>
+      <div
+        style={{
+          ...baseStyle,
+          opacity: progress,
+        }}
+      >
+        {text.split('').map((char, index) => (
+          <span
+            key={index}
+            style={{
+              color: index < highlightedChars ? '#ffdd44' : 'rgba(255, 255, 255, 0.8)',
+              textShadow: index < highlightedChars 
+                ? '3px 3px 0px #ff6b6b, -1px -1px 0px #ff6b6b, 1px -1px 0px #ff6b6b, -1px 1px 0px #ff6b6b'
+                : 'inherit',
+              transition: 'color 0.1s ease-out',
+            }}
+          >
+            {char}
+          </span>
+        ))}
       </div>
     );
   }

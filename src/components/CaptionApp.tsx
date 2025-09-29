@@ -244,8 +244,8 @@ ${JSON.stringify(captions, null, 2)}
       <div className="mb-8 p-4 bg-green-500/20 rounded-lg border border-green-400/30">
         <p className="text-green-300 font-semibold mb-1">✅ Choose Your Transcription Method</p>
         <p className="text-white/80 text-sm">
-          <strong>🚀 Whisper.cpp:</strong> Real AI transcription via Transformers.js backend<br/>
-          <strong>🎤 Transformers.js:</strong> Real AI transcription, downloads model first time<br/>
+          <strong>🚀 Whisper.cpp:</strong> Real AI transcription with Hindi/English support<br/>
+          <strong>🎤 Transformers.js:</strong> Multilingual model with auto-detection + Hindi fallback<br/>
           <strong>⚡ Demo:</strong> Instant Hinglish captions for testing UI
         </p>
         {progress && (

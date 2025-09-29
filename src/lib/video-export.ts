@@ -22,16 +22,38 @@ export async function exportVideoWithCaptions(options: ExportOptions): Promise<B
     }
 
     video.src = URL.createObjectURL(videoFile);
-    video.muted = true;
+    video.muted = false; // Keep audio for export
     
     video.addEventListener('loadedmetadata', () => {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       
       const chunks: Blob[] = [];
-      const stream = canvas.captureStream(30); // 30 FPS
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'video/webm;codecs=vp9'
+      
+      // Get canvas stream for video
+      const canvasStream = canvas.captureStream(30); // 30 FPS
+      let finalStream = canvasStream;
+      
+      try {
+        // Try to extract and combine audio
+        const audioContext = new AudioContext();
+        const source = audioContext.createMediaElementSource(video);
+        const destination = audioContext.createMediaStreamDestination();
+        source.connect(destination);
+        source.connect(audioContext.destination); // Also play audio
+        
+        // Combine video and audio streams
+        finalStream = new MediaStream([
+          ...canvasStream.getVideoTracks(),
+          ...destination.stream.getAudioTracks()
+        ]);
+      } catch (error) {
+        console.warn('Audio extraction failed, exporting video only:', error);
+        // fallback to video-only stream
+      }
+      
+      const mediaRecorder = new MediaRecorder(finalStream, {
+        mimeType: 'video/webm;codecs=vp9,opus'
       });
       
       mediaRecorder.ondataavailable = (e) => {
@@ -111,7 +133,7 @@ function drawCaption(
   
   switch (style) {
     case 'bottom':
-      y = height - height * 0.15;
+      y = height - height * 0.12; // Move captions higher to avoid cropping
       
       // Background
       ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
@@ -144,7 +166,7 @@ function drawCaption(
       break;
       
     case 'karaoke':
-      y = height - height * 0.2;
+      y = height - height * 0.15; // Move captions higher to avoid cropping
       
       // Text shadow/outline
       ctx.strokeStyle = 'black';
