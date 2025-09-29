@@ -6,6 +6,7 @@ import {CaptionedVideo, Caption} from '@/remotion/CaptionedVideo';
 import {whisperTranscriber} from '@/lib/whisper-client';
 import {whisperCppClient} from '@/lib/whisper-cpp-client';
 import {exportVideoWithCaptions} from '@/lib/video-export';
+import {ApiTranscriber} from '@/lib/api-transcriber';
 
 export const CaptionApp = () => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -14,7 +15,7 @@ export const CaptionApp = () => {
   const [captionStyle, setCaptionStyle] = useState<'bottom' | 'top' | 'karaoke'>('bottom');
   const [isGenerating, setIsGenerating] = useState(false);
   const [modelLoading, setModelLoading] = useState(false);
-  const [transcriptionMethod, setTranscriptionMethod] = useState<'whisper-cpp' | 'transformers' | 'none'>('none');
+  const [transcriptionMethod, setTranscriptionMethod] = useState<'api' | 'whisper-cpp' | 'transformers' | 'none'>('none');
   const [canCancel, setCanCancel] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -88,6 +89,43 @@ export const CaptionApp = () => {
       setCaptions(fallbackCaption);
       setProgress('');
       alert('Transcription failed. Using demo captions. Try a video with clear speech.');
+    } finally {
+      setIsGenerating(false);
+      setModelLoading(false);
+      setTranscriptionMethod('none');
+      setCanCancel(false);
+    }
+  };
+
+  // Fast server-side caption generation
+  const generateCaptionsFast = async () => {
+    if (!videoFile || isGenerating) {
+      if (!videoFile) alert('Please upload a video first');
+      return;
+    }
+
+    setTranscriptionMethod('api');
+    setIsGenerating(true);
+    setModelLoading(false); // No client-side model loading
+    setCanCancel(false); // Server-side can't be cancelled
+    setProgress('Processing on server (fastest option)...');
+    
+    try {
+      const generatedCaptions = await ApiTranscriber.transcribe(
+        videoFile,
+        (progressUpdate) => setProgress(progressUpdate)
+      );
+      
+      setCaptions(generatedCaptions);
+      setProgress('');
+      
+      if (generatedCaptions.length === 0) {
+        alert('No speech detected in the video. Please try a video with clear audio.');
+      }
+    } catch (error) {
+      console.error('Server transcription error:', error);
+      alert('Server transcription failed. Try the client-side option.');
+      setProgress('');
     } finally {
       setIsGenerating(false);
       setModelLoading(false);
@@ -258,9 +296,10 @@ ${JSON.stringify(captions, null, 2)}
       <div className="mb-8 p-4 bg-green-500/20 rounded-lg border border-green-400/30">
         <p className="text-green-300 font-semibold mb-1">✅ Choose Your Transcription Method</p>
         <p className="text-white/80 text-sm">
-          <strong>🚀 Whisper.cpp:</strong> Real AI transcription with Hindi/English support<br/>
-          <strong>🎤 Transformers.js:</strong> Multilingual model with auto-detection + Hindi fallback<br/>
-          <strong>⚡ Demo:</strong> Instant Hinglish captions for testing UI
+          <strong>⚡ Fast Server:</strong> Fastest option - processes on server (recommended)<br/>
+          <strong>🚀 Whisper.cpp:</strong> Client-side AI transcription<br/>
+          <strong>🎤 Transformers.js:</strong> Client-side multilingual model<br/>
+          <strong>📝 Demo:</strong> Instant test captions
         </p>
         {progress && (
           <div className="mt-2">
@@ -281,7 +320,19 @@ ${JSON.stringify(captions, null, 2)}
 
       {/* Caption Generation */}
       <div className="mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <button
+            onClick={generateCaptionsFast}
+            disabled={!videoFile || isGenerating}
+            className={`font-bold py-4 px-6 rounded-xl transition-all transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed ${
+              transcriptionMethod === 'api' 
+                ? 'bg-gradient-to-r from-yellow-600 to-orange-600 text-white animate-pulse' 
+                : 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 disabled:from-gray-500 disabled:to-gray-600 text-white'
+            }`}
+          >
+            {transcriptionMethod === 'api' && isGenerating ? '🔄 Processing...' : 
+             '⚡ Fast Server (Recommended)'}  
+          </button>
           <button
             onClick={generateCaptionsWithWhisperCpp}
             disabled={!videoFile || isGenerating}

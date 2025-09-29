@@ -37,12 +37,13 @@ class WhisperTranscriber {
       
       this.pipeline = await pipeline(
         'automatic-speech-recognition',
-        'Xenova/whisper-small', // Multilingual model that supports Hindi
+        'Xenova/whisper-tiny.en', // Much smaller model (~39MB vs ~466MB)
         {
+          quantized: true, // Use quantized model for faster loading
           progress_callback: (progress: any) => {
             if (progress.status === 'progress' && progress.total) {
               const percent = Math.round((progress.loaded / progress.total) * 100);
-              onProgress?.(`Downloading: ${percent}%`);
+              onProgress?.(`Downloading model (39MB): ${percent}%`);
             } else if (progress.status === 'ready') {
               onProgress?.('Model ready!');
             }
@@ -66,12 +67,13 @@ class WhisperTranscriber {
     onProgress?.('Transcribing audio...');
     
     try {
-      // First try auto-detection (no language specified)
+      // Use optimized settings for faster processing
       let output = await model(input, {
         return_timestamps: true,
-        chunk_length_s: 30,
-        stride_length_s: 5,
+        chunk_length_s: 15, // Smaller chunks for faster processing
+        stride_length_s: 2, // Less overlap for speed
         task: 'transcribe',
+        language: 'english', // Skip language detection for speed
       });
 
       // If no text detected, try with Hindi language specified
