@@ -18,13 +18,31 @@ export const CaptionApp = () => {
   const [canCancel, setCanCancel] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const [isLoadingVideo, setIsLoadingVideo] = useState(false);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type === 'video/mp4') {
-      setVideoFile(file);
-      const url = URL.createObjectURL(file);
-      setVideoUrl(url);
-      setCaptions([]); // Reset captions when new video is uploaded
+      setIsLoadingVideo(true);
+      setProgress('Loading video...');
+      
+      try {
+        // Use setTimeout to make this non-blocking
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        setVideoFile(file);
+        const url = URL.createObjectURL(file);
+        setVideoUrl(url);
+        setCaptions([]); // Reset captions when new video is uploaded
+        setProgress('');
+      } catch (error) {
+        console.error('Error loading video:', error);
+        setProgress('Error loading video');
+      } finally {
+        setIsLoadingVideo(false);
+      }
+    } else if (file) {
+      alert('Please upload an MP4 video file');
     }
   };
 
@@ -242,9 +260,14 @@ ${JSON.stringify(captions, null, 2)}
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="bg-gradient-to-r from-pink-500 to-violet-500 hover:from-pink-600 hover:to-violet-600 text-white font-bold py-4 px-8 rounded-xl transition-all transform hover:scale-105"
+            disabled={isLoadingVideo}
+            className={`font-bold py-4 px-8 rounded-xl transition-all transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed ${
+              isLoadingVideo 
+                ? 'bg-gray-500 text-white' 
+                : 'bg-gradient-to-r from-pink-500 to-violet-500 hover:from-pink-600 hover:to-violet-600 text-white'
+            }`}
           >
-            📁 Upload MP4 Video
+            {isLoadingVideo ? '⏳ Loading Video...' : '📁 Upload MP4 Video'}
           </button>
           {videoFile && (
             <p className="mt-4 text-white/80">
@@ -284,7 +307,7 @@ ${JSON.stringify(captions, null, 2)}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
             onClick={generateCaptionsWithWhisperCpp}
-            disabled={!videoFile || isGenerating}
+            disabled={!videoFile || isGenerating || isLoadingVideo}
             className={`font-bold py-4 px-6 rounded-xl transition-all transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed ${
               transcriptionMethod === 'whisper-cpp' 
                 ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white' 
@@ -298,7 +321,7 @@ ${JSON.stringify(captions, null, 2)}
           
           <button
             onClick={generateCaptions}
-            disabled={!videoFile || isGenerating}
+            disabled={!videoFile || isGenerating || isLoadingVideo}
             className={`font-bold py-4 px-6 rounded-xl transition-all transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed ${
               transcriptionMethod === 'transformers' 
                 ? 'bg-gradient-to-r from-green-600 to-blue-600 text-white' 
@@ -323,7 +346,7 @@ ${JSON.stringify(captions, null, 2)}
               ];
               setCaptions(demoCaption);
             }}
-            disabled={!videoFile || isGenerating}
+            disabled={!videoFile || isGenerating || isLoadingVideo}
             className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:from-gray-500 disabled:to-gray-600 text-white font-bold py-4 px-6 rounded-xl transition-all transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed"
           >
             ⚡ Demo Captions (Instant)
