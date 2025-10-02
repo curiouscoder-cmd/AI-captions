@@ -66,6 +66,9 @@ class WhisperTranscriber {
     onProgress?.('Transcribing audio...');
     
     try {
+      // Yield to the browser to prevent freezing
+      await new Promise(resolve => setTimeout(resolve, 0));
+      
       // First try auto-detection (no language specified)
       let output = await model(input, {
         return_timestamps: true,
@@ -73,6 +76,9 @@ class WhisperTranscriber {
         stride_length_s: 5,
         task: 'transcribe',
       });
+
+      // Yield to the browser again
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       // If no text detected, try with Hindi language specified
       if (!output.text && (!output.chunks || output.chunks.length === 0)) {

@@ -4,7 +4,6 @@ import {useState, useRef} from 'react';
 import {Player} from '@remotion/player';
 import {CaptionedVideo, Caption} from '@/remotion/CaptionedVideo';
 import {whisperTranscriber} from '@/lib/whisper-client';
-import {whisperCppClient} from '@/lib/whisper-cpp-client';
 import {exportVideoWithCaptions} from '@/lib/video-export';
 
 export const CaptionApp = () => {
@@ -14,7 +13,7 @@ export const CaptionApp = () => {
   const [captionStyle, setCaptionStyle] = useState<'bottom' | 'top' | 'karaoke'>('bottom');
   const [isGenerating, setIsGenerating] = useState(false);
   const [modelLoading, setModelLoading] = useState(false);
-  const [transcriptionMethod, setTranscriptionMethod] = useState<'whisper-cpp' | 'transformers' | 'none'>('none');
+  const [transcriptionMethod, setTranscriptionMethod] = useState<'transformers' | 'none'>('none');
   const [canCancel, setCanCancel] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -57,62 +56,6 @@ export const CaptionApp = () => {
     setTimeout(() => setProgress(''), 3000);
   };
 
-  const generateCaptionsWithWhisperCpp = async () => {
-    if (!videoFile || isGenerating) {
-      if (!videoFile) alert('Please upload a video first');
-      return;
-    }
-
-    setTranscriptionMethod('whisper-cpp');
-    setIsGenerating(true);
-    setModelLoading(true);
-    setCanCancel(true);
-    setProgress('Using Transformers.js as Whisper.cpp backend...');
-    
-    try {
-      // Use the same real transcription as Transformers.js but with different branding
-      const videoUrl = URL.createObjectURL(videoFile);
-      
-      setProgress('Loading Whisper model...');
-      
-      // Use the actual Whisper transcription
-      const generatedCaptions = await whisperTranscriber.transcribe(
-        videoUrl,
-        (progressUpdate) => setProgress(`Whisper.cpp: ${progressUpdate}`)
-      );
-      
-      setCaptions(generatedCaptions);
-      setProgress('');
-      
-      // Clean up
-      URL.revokeObjectURL(videoUrl);
-      
-      if (generatedCaptions.length === 0) {
-        console.log('No captions were generated - the audio might be unclear or in an unsupported language');
-      }
-      
-    } catch (error) {
-      console.error('Whisper.cpp error:', error);
-      
-      // Fallback to demo captions if transcription fails
-      const fallbackCaption = [
-        { start: 0, end: 3, text: "Whisper transcription failed" },
-        { start: 3, end: 6, text: "Using demo captions instead" },
-        { start: 6, end: 9, text: "आप easily captions add कर सकते हैं" },
-        { start: 9, end: 12, text: "Multiple styles available हैं" },
-        { start: 12, end: 15, text: "Try uploading a video with clear speech" }
-      ];
-      
-      setCaptions(fallbackCaption);
-      setProgress('');
-      alert('Transcription failed. Using demo captions. Try a video with clear speech.');
-    } finally {
-      setIsGenerating(false);
-      setModelLoading(false);
-      setTranscriptionMethod('none');
-      setCanCancel(false);
-    }
-  };
 
   const generateCaptions = async () => {
     if (!videoFile || isGenerating) {
@@ -127,13 +70,20 @@ export const CaptionApp = () => {
     setProgress('Preparing video file...');
     
     try {
+      // Yield to browser to update UI
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Convert video file to URL for Whisper
       const videoUrl = URL.createObjectURL(videoFile);
       
       // Transcribe using Whisper (it can handle video files directly)
       const generatedCaptions = await whisperTranscriber.transcribe(
         videoUrl,
-        (progressUpdate) => setProgress(progressUpdate)
+        (progressUpdate) => {
+          setProgress(progressUpdate);
+          // Force UI update
+          return new Promise(resolve => setTimeout(resolve, 0));
+        }
       );
       
       setCaptions(generatedCaptions);
@@ -281,14 +231,19 @@ ${JSON.stringify(captions, null, 2)}
       <div className="mb-8 p-4 bg-green-500/20 rounded-lg border border-green-400/30">
         <p className="text-green-300 font-semibold mb-1">✅ Choose Your Transcription Method</p>
         <p className="text-white/80 text-sm">
-          <strong>🚀 Whisper.cpp:</strong> Fast AI transcription with Hindi/English support<br/>
-          <strong>🎤 Transformers.js:</strong> Multilingual model with auto-detection<br/>
+          <strong>🎤 AI Transcription:</strong> Powered by Transformers.js Whisper model with multilingual support (Hindi/English)<br/>
           <strong>📝 Demo:</strong> Instant Hinglish captions for testing
         </p>
         {progress && (
           <div className="mt-2">
-            <p className="text-yellow-300 text-sm animate-pulse">
-              {progress}
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-yellow-300 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-yellow-300 text-sm animate-pulse">
+                {progress}
+              </p>
+            </div>
+            <p className="text-white/60 text-xs mt-1">
+              ⏳ Processing may take 1-2 minutes. The page may feel slow but it's working...
             </p>
             {canCancel && (
               <button
@@ -304,21 +259,7 @@ ${JSON.stringify(captions, null, 2)}
 
       {/* Caption Generation */}
       <div className="mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button
-            onClick={generateCaptionsWithWhisperCpp}
-            disabled={!videoFile || isGenerating || isLoadingVideo}
-            className={`font-bold py-4 px-6 rounded-xl transition-all transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed ${
-              transcriptionMethod === 'whisper-cpp' 
-                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white' 
-                : 'bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 disabled:from-gray-500 disabled:to-gray-600 text-white'
-            }`}
-          >
-            {transcriptionMethod === 'whisper-cpp' && isGenerating ? '🔄 Processing...' : 
-             modelLoading && transcriptionMethod === 'whisper-cpp' ? '📥 Loading...' : 
-             '🚀 Whisper.cpp (Real AI)'}
-          </button>
-          
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <button
             onClick={generateCaptions}
             disabled={!videoFile || isGenerating || isLoadingVideo}
@@ -329,8 +270,8 @@ ${JSON.stringify(captions, null, 2)}
             }`}
           >
             {transcriptionMethod === 'transformers' && isGenerating ? '🔄 Processing...' : 
-             modelLoading && transcriptionMethod === 'transformers' ? '📥 Loading...' : 
-             '🎤 Transformers.js (Real AI)'}
+             modelLoading && transcriptionMethod === 'transformers' ? '📥 Loading Model...' : 
+             '🎤 AI Transcription (Whisper)'}
           </button>
           
           <button
